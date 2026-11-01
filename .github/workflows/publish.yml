@@ -30,4 +30,5 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           printf 'KASICT для Android %s.\n\nУстановите APK или обновитесь через настройки приложения. Настройки и заметки сохраняются.\n' "$RELEASE_TAG" > "$RUNNER_TEMP/notes.md"
+          if [ -f RELEASE_NOTES.md ]; then cp RELEASE_NOTES.md "$RUNNER_TEMP/notes.md"; fi
           gh release create "$RELEASE_TAG" KASICT-Android.apk update.json SHA256.txt --verify-tag --title "KASICT $RELEASE_TAG" --notes-file "$RUNNER_TEMP/notes.md" --latest
