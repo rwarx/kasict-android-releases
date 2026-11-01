@@ -1,0 +1,33 @@
+name: Publish APK assets
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify release files
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          sha256sum --check SHA256.txt
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          manifest = json.loads(Path('update.json').read_text())
+          apk = Path('KASICT-Android.apk').read_bytes()
+          assert 'v' + manifest['versionName'] == os.environ['RELEASE_TAG']
+          assert manifest['sha256'] == hashlib.sha256(apk).hexdigest()
+          assert manifest['size'] == len(apk)
+          assert manifest['packageName'] == 'ru.kasict.schedule'
+          PY
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          printf 'KASICT для Android %s.\n\nУстановите APK или обновитесь через настройки приложения. Настройки и заметки сохраняются.\n' "$RELEASE_TAG" > "$RUNNER_TEMP/notes.md"
+          gh release create "$RELEASE_TAG" KASICT-Android.apk update.json SHA256.txt --verify-tag --title "KASICT $RELEASE_TAG" --notes-file "$RUNNER_TEMP/notes.md" --latest
